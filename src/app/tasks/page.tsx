@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { mockTasks, mockActivity, mockAgents } from "@/lib/mock-data";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { useStore } from "@/lib/store";
 import type { Task } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,23 +27,31 @@ const PRIORITY_DOT: Record<string, string> = {
 // ─── Agent avatar colors (stable by name) ─────────────────────────────────────
 
 const AVATAR_COLORS: Record<string, string> = {
-  Alice: "from-green-500 to-emerald-600",
-  Bob: "from-blue-500 to-indigo-600",
-  Carol: "from-purple-500 to-violet-600",
-  Dave: "from-cyan-500 to-teal-600",
-  Eve: "from-pink-500 to-rose-600",
-  Frank: "from-amber-500 to-orange-600",
+  Henry: "from-violet-500 to-purple-600",
+  Alex: "from-indigo-500 to-blue-600",
+  Scout: "from-slate-500 to-gray-600",
+  Quill: "from-amber-500 to-yellow-600",
+  Echo: "from-slate-400 to-gray-500",
+  Violet: "from-purple-500 to-violet-600",
+  Codex: "from-orange-500 to-amber-600",
+  Charlie: "from-green-500 to-emerald-600",
+  Ralph: "from-gray-500 to-slate-600",
+  Pixel: "from-pink-500 to-rose-600",
 };
 
 // ─── Agent color for activity feed ────────────────────────────────────────────
 
 const AGENT_ACTIVITY_COLORS: Record<string, string> = {
-  Alice: "text-green-400",
-  Bob: "text-blue-400",
-  Carol: "text-purple-400",
-  Dave: "text-cyan-400",
-  Eve: "text-pink-400",
-  Frank: "text-amber-400",
+  Henry: "text-violet-400",
+  Alex: "text-indigo-400",
+  Scout: "text-slate-400",
+  Quill: "text-amber-400",
+  Echo: "text-gray-400",
+  Violet: "text-purple-400",
+  Codex: "text-orange-400",
+  Charlie: "text-green-400",
+  Ralph: "text-slate-400",
+  Pixel: "text-pink-400",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -64,12 +72,6 @@ function getThisWeekCount(tasks: Task[]): number {
   const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
   return tasks.filter((t) => new Date(t.updatedAt).getTime() >= cutoff).length;
 }
-
-// ─── Unique assignees for filter pills ────────────────────────────────────────
-
-const allAssignees = Array.from(
-  new Set(mockTasks.map((t) => t.assignee).filter(Boolean) as string[])
-);
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
 
@@ -149,11 +151,17 @@ function TaskCard({ task, onDragStart, onDragEnd, isDragging }: TaskCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const store = useStore();
+  const tasks = store.tasks;
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
   const dragLeaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const allAssignees = useMemo(
+    () => Array.from(new Set(tasks.map((t) => t.assignee).filter(Boolean) as string[])),
+    [tasks]
+  );
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const thisWeek = getThisWeekCount(tasks);
@@ -205,24 +213,20 @@ export default function TasksPage() {
     e.preventDefault();
     const taskId = e.dataTransfer.getData("text/plain");
     if (!taskId) return;
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, status: targetColumn, updatedAt: new Date().toISOString() } : t
-      )
-    );
+    store.updateTaskStatus(taskId, targetColumn);
     setDraggingId(null);
     setDragOverColumn(null);
-  }, []);
+  }, [store]);
 
   // ── Activity feed (last 8 events) ────────────────────────────────────────
-  const recentActivity = mockActivity.slice(0, 8);
+  const recentActivity = store.activity.slice(0, 8);
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex gap-0 min-h-[calc(100vh-56px)]" style={{ marginLeft: "-24px", marginRight: "-24px", marginTop: "-24px", marginBottom: "-24px" }}>
       {/* Main content */}
       <div className="flex-1 p-6 overflow-auto">
-        {/* KPI Strip — inline numbers like reference */}
+        {/* KPI Strip */}
         <div className="flex items-baseline gap-6 mb-5 flex-wrap">
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-bold text-[var(--text-primary)]">{thisWeek}</span>
@@ -267,7 +271,6 @@ export default function TasksPage() {
             </button>
           ))}
 
-          {/* Project dropdown placeholder */}
           <div
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-[var(--text-secondary)] border border-[var(--border-color)] ml-auto cursor-default"
           >
@@ -347,8 +350,7 @@ export default function TasksPage() {
 
         <div className="space-y-4">
           {recentActivity.map((event) => {
-            // Try to extract agent name from the message
-            const agentMatch = mockAgents.find((a) =>
+            const agentMatch = store.agents.find((a) =>
               event.message.includes(a.name)
             );
             const agentName = agentMatch?.name ?? "System";

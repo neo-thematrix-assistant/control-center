@@ -1,43 +1,44 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { mockAgents } from "@/lib/mock-data";
+import { useStore } from "@/lib/store";
+import AgentPanel from "@/components/AgentPanel";
 import type { Agent } from "@/lib/types";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Agent visual data (mirrors office pixel sprites) ────────────────────────
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+const AGENT_VISUALS: Record<
+  string,
+  { emoji: string; color: string; skinColor: string; hairColor: string; shirtColor: string }
+> = {
+  henry: { emoji: "\uD83D\uDC51", color: "#8b5cf6", skinColor: "#f0c8a0", hairColor: "#4a3728", shirtColor: "#8b5cf6" },
+  alex: { emoji: "\uD83D\uDC7E", color: "#6366f1", skinColor: "#d4a574", hairColor: "#1a1a2e", shirtColor: "#6366f1" },
+  scout: { emoji: "\uD83D\uDD2D", color: "#94a3b8", skinColor: "#f0c8a0", hairColor: "#8b6c47", shirtColor: "#64748b" },
+  quill: { emoji: "\u270D\uFE0F", color: "#eab308", skinColor: "#c68642", hairColor: "#2d1b00", shirtColor: "#ca8a04" },
+  echo: { emoji: "\uD83D\uDCE3", color: "#64748b", skinColor: "#f0c8a0", hairColor: "#3d2b1f", shirtColor: "#475569" },
+  violet: { emoji: "\uD83D\uDC9C", color: "#a855f7", skinColor: "#e8b88a", hairColor: "#6b21a8", shirtColor: "#9333ea" },
+  codex: { emoji: "\uD83D\uDCBB", color: "#f97316", skinColor: "#f0c8a0", hairColor: "#1c1c1c", shirtColor: "#ea580c" },
+  charlie: { emoji: "\u2699\uFE0F", color: "#22c55e", skinColor: "#d4a574", hairColor: "#2d1b00", shirtColor: "#16a34a" },
+  ralph: { emoji: "\uD83D\uDD28", color: "#64748b", skinColor: "#f0c8a0", hairColor: "#5c4033", shirtColor: "#57534e" },
+  pixel: { emoji: "\uD83C\uDFA8", color: "#ec4899", skinColor: "#e8b88a", hairColor: "#ec4899", shirtColor: "#db2777" },
+};
+
+function getVisuals(name: string) {
+  const key = name.toLowerCase();
+  return AGENT_VISUALS[key] ?? { emoji: "\uD83E\uDD16", color: "#6366f1", skinColor: "#f0c8a0", hairColor: "#1a1a2e", shirtColor: "#6366f1" };
 }
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function relativeTime(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime();
   const minutes = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days = Math.floor(diff / 86_400_000);
-
   if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
-}
-
-const AVATAR_GRADIENTS = [
-  "from-blue-500 to-cyan-400",
-  "from-violet-500 to-purple-400",
-  "from-emerald-500 to-teal-400",
-  "from-amber-500 to-orange-400",
-  "from-rose-500 to-pink-400",
-  "from-sky-500 to-indigo-400",
-];
-
-function avatarGradient(index: number): string {
-  return AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
 }
 
 function modelLabel(model: string): string {
@@ -52,83 +53,148 @@ function modelVersion(model: string): string {
   return match ? match[1] : "";
 }
 
-function healthDot(health: Agent["health"]): string {
-  switch (health) {
-    case "healthy":
-      return "bg-green-400 shadow-[0_0_6px_#4ade80]";
-    case "degraded":
-      return "bg-amber-400 shadow-[0_0_6px_#fbbf24]";
-    case "unhealthy":
-      return "bg-red-400 shadow-[0_0_6px_#f87171]";
-    default:
-      return "bg-gray-400";
-  }
+function statusDotStyle(status: Agent["status"]): React.CSSProperties {
+  const colors: Record<string, string> = {
+    online: "#22c55e",
+    busy: "#f59e0b",
+    idle: "#3b82f6",
+    offline: "#6b7280",
+  };
+  const c = colors[status] ?? "#6b7280";
+  return {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: c,
+    boxShadow: status === "online" ? `0 0 6px ${c}` : status === "busy" ? `0 0 6px ${c}` : "none",
+    flexShrink: 0,
+  };
 }
 
-function statusColor(status: Agent["status"]): string {
-  switch (status) {
-    case "online":
-      return "bg-green-400 shadow-[0_0_6px_#4ade80]";
-    case "busy":
-      return "bg-amber-400 shadow-[0_0_6px_#fbbf24]";
-    case "idle":
-      return "bg-blue-400 shadow-[0_0_6px_#60a5fa]";
-    case "offline":
-      return "bg-gray-500";
-    default:
-      return "bg-gray-500";
-  }
+function healthDotStyle(health: Agent["health"]): React.CSSProperties {
+  const colors: Record<string, string> = {
+    healthy: "#22c55e",
+    degraded: "#f59e0b",
+    unhealthy: "#ef4444",
+  };
+  const c = colors[health] ?? "#6b7280";
+  return {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: c,
+    boxShadow: `0 0 4px ${c}80`,
+    flexShrink: 0,
+  };
+}
+
+// ─── Pixel Sprite Avatar ─────────────────────────────────────────────────────
+
+function PixelAvatar({ name, size = 48 }: { name: string; size?: number }) {
+  const v = getVisuals(name);
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      style={{ imageRendering: "pixelated" }}
+    >
+      {/* Hair */}
+      <rect x="5" y="1" width="6" height="3" fill={v.hairColor} />
+      <rect x="4" y="2" width="1" height="2" fill={v.hairColor} />
+      <rect x="11" y="2" width="1" height="2" fill={v.hairColor} />
+      {/* Face */}
+      <rect x="5" y="3" width="6" height="4" fill={v.skinColor} />
+      <rect x="4" y="4" width="1" height="2" fill={v.skinColor} />
+      <rect x="11" y="4" width="1" height="2" fill={v.skinColor} />
+      {/* Eyes */}
+      <rect x="6" y="4" width="1" height="1" fill="#1a1a2e" />
+      <rect x="9" y="4" width="1" height="1" fill="#1a1a2e" />
+      {/* Body */}
+      <rect x="4" y="7" width="8" height="5" fill={v.shirtColor} rx="1" />
+      <rect x="3" y="7" width="2" height="4" fill={v.shirtColor} rx="0.5" />
+      <rect x="11" y="7" width="2" height="4" fill={v.shirtColor} rx="0.5" />
+      {/* Hands */}
+      <rect x="3" y="10" width="2" height="1" fill={v.skinColor} rx="0.5" />
+      <rect x="11" y="10" width="2" height="1" fill={v.skinColor} rx="0.5" />
+      {/* Legs */}
+      <rect x="5" y="12" width="2" height="3" fill="#374151" />
+      <rect x="9" y="12" width="2" height="3" fill="#374151" />
+      {/* Shoes */}
+      <rect x="4" y="14" width="3" height="1" fill="#1e293b" rx="0.5" />
+      <rect x="9" y="14" width="3" height="1" fill="#1e293b" rx="0.5" />
+    </svg>
+  );
 }
 
 // ─── Agent Card ─────────────────────────────────────────────────────────────
 
-function AgentCard({ agent, index }: { agent: Agent; index: number }) {
-  const grad = avatarGradient(index);
+function AgentCard({ agent, onClick }: { agent: Agent; onClick: () => void }) {
+  const v = getVisuals(agent.name);
   const mLabel = modelLabel(agent.model);
   const mVersion = modelVersion(agent.model);
 
   return (
     <div
-      className="rounded-lg p-5 flex flex-col gap-4 transition hover:brightness-110"
+      className="rounded-xl p-5 flex flex-col gap-4 transition-all cursor-pointer"
       style={{
         background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: `1px solid ${v.color}15`,
+        boxShadow: agent.status === "online" || agent.status === "busy" ? `0 0 20px ${v.color}08` : "none",
+      }}
+      onClick={onClick}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = `${v.color}30`;
+        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = `${v.color}15`;
+        e.currentTarget.style.background = "rgba(255,255,255,0.03)";
       }}
     >
-      {/* Top row: avatar + name/role + status */}
-      <div className="flex items-start gap-3">
+      {/* Top row: pixel avatar + name/role + status */}
+      <div className="flex items-start gap-4">
         <div
-          className={`flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white text-[13px] font-bold shadow-lg`}
+          className="flex-shrink-0 rounded-lg flex items-center justify-center"
+          style={{
+            width: 52,
+            height: 52,
+            background: `linear-gradient(135deg, ${v.color}15, ${v.color}08)`,
+            border: `1px solid ${v.color}20`,
+          }}
         >
-          {getInitials(agent.name)}
+          <PixelAvatar name={agent.name} size={40} />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold leading-tight truncate text-[var(--text-primary)]">
-            {agent.name}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[14px] font-semibold leading-tight truncate text-[var(--text-primary)]">
+              {agent.name}
+            </p>
+            <span style={{ fontSize: 14 }}>{v.emoji}</span>
+          </div>
           <p className="text-[12px] mt-0.5 truncate text-[var(--text-muted)]">
             {agent.role}
           </p>
         </div>
 
-        {/* Inline status indicator */}
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor(agent.status)}`} />
+        {/* Status */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div style={statusDotStyle(agent.status)} />
           <span className="text-[11px] capitalize text-[var(--text-secondary)]">
             {agent.status}
           </span>
         </div>
       </div>
 
-      {/* Model pill + health */}
+      {/* Model + health row */}
       <div className="flex items-center justify-between">
         <span
-          className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium border"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-medium"
           style={{
-            background: "rgba(59,130,246,0.1)",
-            borderColor: "rgba(59,130,246,0.25)",
-            color: "var(--accent-blue)",
+            background: `${v.color}12`,
+            border: `1px solid ${v.color}25`,
+            color: v.color,
           }}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,7 +206,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
         </span>
 
         <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${healthDot(agent.health)}`} />
+          <div style={healthDotStyle(agent.health)} />
           <span className="text-[10px] capitalize text-[var(--text-muted)]">
             {agent.health}
           </span>
@@ -148,20 +214,19 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
       </div>
 
       {/* Divider */}
-      <div className="h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
+      <div className="h-px" style={{ background: `${v.color}10` }} />
 
       {/* Details */}
-      <div className="flex flex-col gap-2 text-[12px]">
+      <div className="flex flex-col gap-2.5 text-[12px]">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[var(--text-muted)]">Session</span>
           {agent.sessionId ? (
-            <a
-              href={`/sessions#${agent.sessionId}`}
-              className="font-mono text-[11px] hover:underline truncate"
-              style={{ color: "var(--accent-blue)" }}
+            <span
+              className="font-mono text-[11px] truncate"
+              style={{ color: v.color }}
             >
               {agent.sessionId}
-            </a>
+            </span>
           ) : (
             <span className="italic text-[var(--text-muted)]">none</span>
           )}
@@ -192,7 +257,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
 function AgentTable({ agents }: { agents: Agent[] }) {
   return (
     <div
-      className="rounded-lg overflow-hidden"
+      className="rounded-xl overflow-hidden"
       style={{
         background: "rgba(255,255,255,0.03)",
         border: "1px solid rgba(255,255,255,0.06)",
@@ -205,7 +270,7 @@ function AgentTable({ agents }: { agents: Agent[] }) {
               className="text-left text-[11px] uppercase tracking-wider text-[var(--text-muted)]"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <th className="px-4 py-3 font-medium">Name</th>
+              <th className="px-4 py-3 font-medium">Agent</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Model</th>
@@ -216,24 +281,33 @@ function AgentTable({ agents }: { agents: Agent[] }) {
             </tr>
           </thead>
           <tbody>
-            {agents.map((agent, index) => {
-              const grad = avatarGradient(index);
+            {agents.map((agent) => {
+              const v = getVisuals(agent.name);
               return (
                 <tr
                   key={agent.id}
                   className="transition hover:brightness-110"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                 >
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`w-7 h-7 rounded-full bg-gradient-to-br ${grad} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}
+                        className="flex-shrink-0 rounded-md flex items-center justify-center"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          background: `${v.color}15`,
+                          border: `1px solid ${v.color}20`,
+                        }}
                       >
-                        {getInitials(agent.name)}
+                        <PixelAvatar name={agent.name} size={24} />
                       </div>
-                      <span className="text-[13px] font-medium text-[var(--text-primary)]">
-                        {agent.name}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                          {agent.name}
+                        </span>
+                        <span style={{ fontSize: 12 }}>{v.emoji}</span>
+                      </div>
                     </div>
                   </td>
 
@@ -243,7 +317,7 @@ function AgentTable({ agents }: { agents: Agent[] }) {
 
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColor(agent.status)}`} />
+                      <div style={statusDotStyle(agent.status)} />
                       <span className="text-[12px] capitalize text-[var(--text-secondary)]">
                         {agent.status}
                       </span>
@@ -252,11 +326,11 @@ function AgentTable({ agents }: { agents: Agent[] }) {
 
                   <td className="px-4 py-3">
                     <span
-                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border"
+                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
                       style={{
-                        background: "rgba(59,130,246,0.1)",
-                        borderColor: "rgba(59,130,246,0.25)",
-                        color: "var(--accent-blue)",
+                        background: `${v.color}12`,
+                        border: `1px solid ${v.color}25`,
+                        color: v.color,
                       }}
                     >
                       {modelLabel(agent.model)} {modelVersion(agent.model)}
@@ -265,7 +339,7 @@ function AgentTable({ agents }: { agents: Agent[] }) {
 
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${healthDot(agent.health)}`} />
+                      <div style={healthDotStyle(agent.health)} />
                       <span className="text-[12px] capitalize text-[var(--text-secondary)]">
                         {agent.health}
                       </span>
@@ -274,13 +348,12 @@ function AgentTable({ agents }: { agents: Agent[] }) {
 
                   <td className="px-4 py-3">
                     {agent.sessionId ? (
-                      <a
-                        href={`/sessions#${agent.sessionId}`}
-                        className="font-mono text-[11px] hover:underline"
-                        style={{ color: "var(--accent-blue)" }}
+                      <span
+                        className="font-mono text-[11px]"
+                        style={{ color: v.color }}
                       >
                         {agent.sessionId}
-                      </a>
+                      </span>
                     ) : (
                       <span className="italic text-[12px] text-[var(--text-muted)]">--</span>
                     )}
@@ -310,15 +383,20 @@ function AgentTable({ agents }: { agents: Agent[] }) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function AgentsPage() {
+  const store = useStore();
+  const agents = store.agents;
   const [view, setView] = useState<"card" | "table">("card");
+  const [panelAgentId, setPanelAgentId] = useState<string | null>(null);
+
+  const panelAgent = panelAgentId ? agents.find((a) => a.id === panelAgentId) ?? null : null;
 
   const stats = useMemo(() => {
-    const total = mockAgents.length;
-    const online = mockAgents.filter((a) => a.status === "online").length;
-    const busy = mockAgents.filter((a) => a.status === "busy").length;
-    const idle = mockAgents.filter((a) => a.status === "idle").length;
+    const total = agents.length;
+    const online = agents.filter((a) => a.status === "online").length;
+    const busy = agents.filter((a) => a.status === "busy").length;
+    const idle = agents.filter((a) => a.status === "idle").length;
     return { total, online, busy, idle };
-  }, []);
+  }, [agents]);
 
   return (
     <div
@@ -334,15 +412,14 @@ export default function AgentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          {/* Agents icon */}
           <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center"
+            className="w-10 h-10 rounded-lg flex items-center justify-center"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(99,102,241,0.1)",
+              border: "1px solid rgba(99,102,241,0.2)",
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-secondary)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -405,12 +482,17 @@ export default function AgentsPage() {
       {/* Content */}
       {view === "card" ? (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {mockAgents.map((agent, index) => (
-            <AgentCard key={agent.id} agent={agent} index={index} />
+          {agents.map((agent) => (
+            <AgentCard key={agent.id} agent={agent} onClick={() => setPanelAgentId(agent.id)} />
           ))}
         </div>
       ) : (
-        <AgentTable agents={mockAgents} />
+        <AgentTable agents={agents} />
+      )}
+
+      {/* Agent Detail Panel */}
+      {panelAgent && (
+        <AgentPanel agent={panelAgent} onClose={() => setPanelAgentId(null)} />
       )}
     </div>
   );

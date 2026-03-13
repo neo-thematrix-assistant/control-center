@@ -122,6 +122,14 @@ export interface ActivityEvent {
   severity?: "info" | "warning" | "error" | "success";
 }
 
+export interface ChatMessage {
+  id: string;
+  agentId: string;
+  role: "user" | "agent";
+  content: string;
+  timestamp: string;
+}
+
 export interface ActionResult {
   success: boolean;
   message: string;
