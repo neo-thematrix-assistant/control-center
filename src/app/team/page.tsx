@@ -1,155 +1,205 @@
 "use client";
 
 import { useState } from "react";
+import { useStore } from "@/lib/store";
+import PixelAvatar, { getVisuals } from "@/components/PixelAvatar";
+import AgentPanel from "@/components/AgentPanel";
 
 // -- Team Data --
 
 interface TeamMember {
-  id: string;
+  agentId: string;
   name: string;
   role: string;
   badge?: string;
   description: string;
   tags: { label: string; color: string }[];
-  avatar: { gradient: string; icon: string };
-  machine?: string;
 }
 
-const henry: TeamMember = {
-  id: "henry",
-  name: "Henry",
-  role: "Chief of Staff",
-  badge: "The Interface",
-  description:
-    "Coordinates, delegates, keeps the ship tight. The first point of contact between boss and machine.",
-  tags: [
-    { label: "Orchestration", color: "#f87171" },
-    { label: "Clarity", color: "#f87171" },
-    { label: "Delegation", color: "#f87171" },
-  ],
-  avatar: { gradient: "from-emerald-500 to-teal-600", icon: "H" },
-};
-
-const operations: TeamMember[] = [
-  {
-    id: "charlie",
-    name: "Charlie",
-    role: "Infrastructure Engineer",
-    description: "Infrastructure and automation specialist. Keeps the systems running and the pipelines flowing.",
-    tags: [
-      { label: "coding", color: "#60a5fa" },
-      { label: "infrastructure", color: "#60a5fa" },
-      { label: "automation", color: "#60a5fa" },
-    ],
-    avatar: { gradient: "from-emerald-500 to-green-600", icon: "C" },
-  },
-  {
-    id: "ralph",
-    name: "Ralph",
-    role: "Foreman / QA Manager",
+const TEAM: Record<string, TeamMember> = {
+  "a-001": {
+    agentId: "a-001",
+    name: "Henry",
+    role: "Chief of Staff",
+    badge: "The Interface",
     description:
-      "Checks the work, signs off or sends it back. No-nonsense quality control.",
+      "Coordinates, delegates, keeps the ship tight. The first point of contact between boss and machine.",
     tags: [
-      { label: "Quality Assurance", color: "#a78bfa" },
-      { label: "Monitoring", color: "#a78bfa" },
-      { label: "Demo Recording", color: "#a78bfa" },
+      { label: "Orchestration", color: "#f87171" },
+      { label: "Clarity", color: "#f87171" },
+      { label: "Delegation", color: "#f87171" },
     ],
-    avatar: { gradient: "from-violet-500 to-purple-600", icon: "R" },
   },
-];
-
-const inputSignal: TeamMember[] = [
-  {
-    id: "scout",
+  "a-002": {
+    agentId: "a-002",
+    name: "Alex",
+    role: "Strategy Analyst",
+    badge: "The Strategist",
+    description:
+      "Analyzes data, reviews code, and crafts strategic recommendations. The brain behind every key decision.",
+    tags: [
+      { label: "Strategy", color: "#818cf8" },
+      { label: "Code Review", color: "#818cf8" },
+      { label: "Analysis", color: "#818cf8" },
+    ],
+  },
+  "a-003": {
+    agentId: "a-003",
     name: "Scout",
     role: "Trend Analyst",
     description:
       "Finds leads, tracks signals, scouts emerging trends across the internet.",
     tags: [
-      { label: "research", color: "#94a3b8" },
-      { label: "trends", color: "#94a3b8" },
-      { label: "signals", color: "#94a3b8" },
+      { label: "Research", color: "#94a3b8" },
+      { label: "Trends", color: "#94a3b8" },
+      { label: "Signals", color: "#94a3b8" },
     ],
-    avatar: { gradient: "from-slate-500 to-gray-600", icon: "S" },
   },
-  {
-    id: "quill",
+  "a-004": {
+    agentId: "a-004",
     name: "Quill",
     role: "Content Writer",
     description:
-      "Writes copy, designs content, drafts newsletters and scripts.",
+      "Writes copy, designs content, drafts newsletters and scripts. Every word, carefully chosen.",
     tags: [
-      { label: "writing", color: "#facc15" },
-      { label: "content", color: "#facc15" },
-      { label: "newsletters", color: "#facc15" },
+      { label: "Writing", color: "#facc15" },
+      { label: "Content", color: "#facc15" },
+      { label: "Newsletters", color: "#facc15" },
     ],
-    avatar: { gradient: "from-amber-500 to-yellow-600", icon: "Q" },
   },
-];
-
-const outputAction: TeamMember[] = [
-  {
-    id: "pixel",
+  "a-005": {
+    agentId: "a-005",
+    name: "Echo",
+    role: "Social Media Manager",
+    description:
+      "Posts, engages, manages social presence across all platforms. The voice of the brand.",
+    tags: [
+      { label: "Social Media", color: "#94a3b8" },
+      { label: "Engagement", color: "#94a3b8" },
+      { label: "Distribution", color: "#94a3b8" },
+    ],
+  },
+  "a-006": {
+    agentId: "a-006",
+    name: "Violet",
+    role: "Brand Designer",
+    badge: "The Creative",
+    description:
+      "Designs brand assets, creates visual identities, and ensures every pixel tells the right story.",
+    tags: [
+      { label: "Design", color: "#c084fc" },
+      { label: "Branding", color: "#c084fc" },
+      { label: "Visual Identity", color: "#c084fc" },
+    ],
+  },
+  "a-007": {
+    agentId: "a-007",
+    name: "Codex",
+    role: "Code Engineer",
+    description:
+      "Writes, ships, and maintains code. From features to fixes, Codex gets it done.",
+    tags: [
+      { label: "Engineering", color: "#fb923c" },
+      { label: "Features", color: "#fb923c" },
+      { label: "APIs", color: "#fb923c" },
+    ],
+  },
+  "a-008": {
+    agentId: "a-008",
+    name: "Charlie",
+    role: "Infrastructure Engineer",
+    description:
+      "Infrastructure and automation specialist. Keeps the systems running and the pipelines flowing.",
+    tags: [
+      { label: "Infrastructure", color: "#4ade80" },
+      { label: "DevOps", color: "#4ade80" },
+      { label: "Automation", color: "#4ade80" },
+    ],
+  },
+  "a-009": {
+    agentId: "a-009",
+    name: "Ralph",
+    role: "QA Manager",
+    description:
+      "Checks the work, signs off or sends it back. No-nonsense quality control.",
+    tags: [
+      { label: "Quality Assurance", color: "#a78bfa" },
+      { label: "Monitoring", color: "#a78bfa" },
+      { label: "Testing", color: "#a78bfa" },
+    ],
+  },
+  "a-010": {
+    agentId: "a-010",
     name: "Pixel",
     role: "Thumbnail Designer",
     description:
       "Designs thumbnails, crafts visuals, creates eye-catching graphics for content.",
     tags: [
-      { label: "design", color: "#4ade80" },
-      { label: "thumbnails", color: "#4ade80" },
-      { label: "visuals", color: "#4ade80" },
+      { label: "Design", color: "#f472b6" },
+      { label: "Thumbnails", color: "#f472b6" },
+      { label: "Visuals", color: "#f472b6" },
     ],
-    avatar: { gradient: "from-green-500 to-emerald-600", icon: "P" },
   },
-  {
-    id: "echo",
-    name: "Echo",
-    role: "Social Media Manager",
-    description:
-      "Posts, engages, manages social presence across all platforms.",
-    tags: [
-      { label: "social media", color: "#94a3b8" },
-      { label: "engagement", color: "#94a3b8" },
-      { label: "distribution", color: "#94a3b8" },
-    ],
-    avatar: { gradient: "from-slate-400 to-gray-500", icon: "E" },
-  },
-];
+};
 
-const allMembers = [henry, ...operations, ...inputSignal, ...outputAction];
+// Org chart layout
+const LEADERSHIP = ["a-001"];
+const OPERATIONS = ["a-007", "a-008", "a-009"];
+const INPUT_SIGNAL = ["a-002", "a-003", "a-004"];
+const OUTPUT_ACTION = ["a-005", "a-006", "a-010"];
 
 // -- Components --
 
-function AgentCard({
+function TeamCard({
   member,
+  status,
+  currentTask,
   expanded,
   onToggle,
+  onAvatarClick,
 }: {
   member: TeamMember;
+  status?: string;
+  currentTask?: string;
   expanded: boolean;
   onToggle: () => void;
+  onAvatarClick: () => void;
 }) {
+  const v = getVisuals(member.name);
+
   return (
     <div
       className="rounded-xl p-5 transition-all cursor-pointer"
       style={{
         background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: `1px solid ${v.color}15`,
       }}
       onClick={onToggle}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+        e.currentTarget.style.borderColor = `${v.color}30`;
+        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+        e.currentTarget.style.borderColor = `${v.color}15`;
+        e.currentTarget.style.background = "rgba(255,255,255,0.03)";
       }}
     >
       <div className="flex items-start gap-4">
-        {/* Avatar */}
+        {/* Pixel Avatar */}
         <div
-          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${member.avatar.gradient} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}
+          className="flex-shrink-0 rounded-lg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+          style={{
+            width: 52,
+            height: 52,
+            background: `linear-gradient(135deg, ${v.color}15, ${v.color}08)`,
+            border: `1px solid ${v.color}20`,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAvatarClick();
+          }}
         >
-          {member.avatar.icon}
+          <PixelAvatar name={member.name} size={40} />
         </div>
 
         {/* Info */}
@@ -158,22 +208,43 @@ function AgentCard({
             <span className="text-[14px] font-semibold text-[var(--text-primary)]">
               {member.name}
             </span>
+            <span style={{ fontSize: 14 }}>{v.emoji}</span>
             {member.badge && (
               <span
                 className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                 style={{
-                  background: "rgba(251,146,60,0.12)",
-                  color: "#fb923c",
-                  border: "1px solid rgba(251,146,60,0.25)",
+                  background: `${v.color}15`,
+                  color: v.color,
+                  border: `1px solid ${v.color}30`,
                 }}
               >
                 {member.badge}
               </span>
             )}
           </div>
-          <p className="text-[12px] text-[var(--text-muted)] mb-2">
+          <p className="text-[12px] text-[var(--text-muted)] mb-1">
             {member.role}
           </p>
+
+          {/* Status + current task */}
+          {status && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <div
+                className="rounded-full"
+                style={{
+                  width: 6,
+                  height: 6,
+                  background: status === "online" ? "#22c55e" : status === "busy" ? "#f59e0b" : status === "idle" ? "#3b82f6" : "#6b7280",
+                  boxShadow: status === "online" ? "0 0 4px #22c55e" : status === "busy" ? "0 0 4px #f59e0b" : "none",
+                }}
+              />
+              <span className="text-[11px] capitalize text-[var(--text-secondary)]">{status}</span>
+              {currentTask && (
+                <span className="text-[11px] text-[var(--text-muted)] truncate"> &mdash; {currentTask}</span>
+              )}
+            </div>
+          )}
+
           <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3">
             {member.description}
           </p>
@@ -199,7 +270,7 @@ function AgentCard({
           {expanded && (
             <div
               className="mt-4 pt-4 text-[12px] text-[var(--text-secondary)] leading-relaxed"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: `1px solid ${v.color}15` }}
             >
               <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-2">
                 Role Details
@@ -215,7 +286,8 @@ function AgentCard({
 
         {/* Role card link */}
         <button
-          className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0 mt-1 uppercase tracking-wider font-medium"
+          className="text-[10px] hover:text-[var(--text-secondary)] transition-colors flex-shrink-0 mt-1 uppercase tracking-wider font-medium"
+          style={{ color: v.color }}
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
@@ -228,27 +300,15 @@ function AgentCard({
   );
 }
 
-function SectionDivider({
-  label,
-  icon,
-}: {
-  label: string;
-  icon?: string;
-}) {
+function SectionDivider({ label, icon }: { label: string; icon?: string }) {
   return (
     <div className="flex items-center gap-3 py-2">
-      <div
-        className="flex-1 h-px"
-        style={{ background: "rgba(255,255,255,0.08)" }}
-      />
+      <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
       <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-widest font-medium flex items-center gap-1.5">
         {icon && <span>{icon}</span>}
         {label}
       </span>
-      <div
-        className="flex-1 h-px"
-        style={{ background: "rgba(255,255,255,0.08)" }}
-      />
+      <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
     </div>
   );
 }
@@ -256,10 +316,7 @@ function SectionDivider({
 function VerticalConnector() {
   return (
     <div className="flex justify-center py-1">
-      <div
-        className="w-px h-10"
-        style={{ background: "rgba(255,255,255,0.1)" }}
-      />
+      <div className="w-px h-10" style={{ background: "rgba(255,255,255,0.1)" }} />
     </div>
   );
 }
@@ -267,10 +324,37 @@ function VerticalConnector() {
 // -- Main Page --
 
 export default function TeamPage() {
+  const store = useStore();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [panelAgentId, setPanelAgentId] = useState<string | null>(null);
+
+  const panelAgent = panelAgentId ? store.agents.find((a) => a.id === panelAgentId) ?? null : null;
 
   const toggle = (id: string) =>
     setExpandedId(expandedId === id ? null : id);
+
+  const getAgentStatus = (agentId: string) => {
+    const agent = store.agents.find((a) => a.id === agentId);
+    return { status: agent?.status, currentTask: agent?.currentTask };
+  };
+
+  const renderSection = (ids: string[]) =>
+    ids.map((id) => {
+      const member = TEAM[id];
+      if (!member) return null;
+      const { status, currentTask } = getAgentStatus(id);
+      return (
+        <TeamCard
+          key={id}
+          member={member}
+          status={status}
+          currentTask={currentTask}
+          expanded={expandedId === id}
+          onToggle={() => toggle(id)}
+          onAvatarClick={() => setPanelAgentId(id)}
+        />
+      );
+    });
 
   return (
     <div
@@ -289,7 +373,7 @@ export default function TeamPage() {
           Meet the Team
         </h1>
         <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-          {allMembers.length} AI agents across 3 machines, each with a real role
+          {store.agents.length} AI agents, each with a real role
           and a real personality.
         </p>
         <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
@@ -303,61 +387,41 @@ export default function TeamPage() {
       <div className="max-w-4xl mx-auto">
         {/* Henry - Chief of Staff */}
         <div className="max-w-2xl mx-auto">
-          <AgentCard
-            member={henry}
-            expanded={expandedId === henry.id}
-            onToggle={() => toggle(henry.id)}
-          />
+          {renderSection(LEADERSHIP)}
         </div>
 
         <VerticalConnector />
 
-        {/* Operations Section */}
-        <SectionDivider label="OPERATIONS (Mac Studio 2)" icon="" />
+        {/* Engineering & Operations */}
+        <SectionDivider label="ENGINEERING & OPS" />
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          {operations.map((m) => (
-            <AgentCard
-              key={m.id}
-              member={m}
-              expanded={expandedId === m.id}
-              onToggle={() => toggle(m.id)}
-            />
-          ))}
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          {renderSection(OPERATIONS)}
         </div>
 
         <VerticalConnector />
 
         {/* Input Signal / Output Action */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           <div>
-            <SectionDivider label="INPUT SIGNAL" icon="&#x2193;" />
+            <SectionDivider label="STRATEGY & CONTENT" icon="&#x2193;" />
             <div className="space-y-4 mt-4">
-              {inputSignal.map((m) => (
-                <AgentCard
-                  key={m.id}
-                  member={m}
-                  expanded={expandedId === m.id}
-                  onToggle={() => toggle(m.id)}
-                />
-              ))}
+              {renderSection(INPUT_SIGNAL)}
             </div>
           </div>
           <div>
-            <SectionDivider label="OUTPUT ACTION" icon="&#x2193;" />
+            <SectionDivider label="MEDIA & DESIGN" icon="&#x2193;" />
             <div className="space-y-4 mt-4">
-              {outputAction.map((m) => (
-                <AgentCard
-                  key={m.id}
-                  member={m}
-                  expanded={expandedId === m.id}
-                  onToggle={() => toggle(m.id)}
-                />
-              ))}
+              {renderSection(OUTPUT_ACTION)}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Agent Detail Panel */}
+      {panelAgent && (
+        <AgentPanel agent={panelAgent} onClose={() => setPanelAgentId(null)} />
+      )}
     </div>
   );
 }

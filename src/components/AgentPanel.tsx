@@ -2,50 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useStore } from "@/lib/store";
+import PixelAvatar, { getVisuals } from "@/components/PixelAvatar";
 import type { Agent } from "@/lib/types";
-
-// Visual data matching office sprites
-const AGENT_VISUALS: Record<string, { emoji: string; color: string; skinColor: string; hairColor: string; shirtColor: string }> = {
-  henry: { emoji: "\uD83D\uDC51", color: "#8b5cf6", skinColor: "#f0c8a0", hairColor: "#4a3728", shirtColor: "#8b5cf6" },
-  alex: { emoji: "\uD83D\uDC7E", color: "#6366f1", skinColor: "#d4a574", hairColor: "#1a1a2e", shirtColor: "#6366f1" },
-  scout: { emoji: "\uD83D\uDD2D", color: "#94a3b8", skinColor: "#f0c8a0", hairColor: "#8b6c47", shirtColor: "#64748b" },
-  quill: { emoji: "\u270D\uFE0F", color: "#eab308", skinColor: "#c68642", hairColor: "#2d1b00", shirtColor: "#ca8a04" },
-  echo: { emoji: "\uD83D\uDCE3", color: "#64748b", skinColor: "#f0c8a0", hairColor: "#3d2b1f", shirtColor: "#475569" },
-  violet: { emoji: "\uD83D\uDC9C", color: "#a855f7", skinColor: "#e8b88a", hairColor: "#6b21a8", shirtColor: "#9333ea" },
-  codex: { emoji: "\uD83D\uDCBB", color: "#f97316", skinColor: "#f0c8a0", hairColor: "#1c1c1c", shirtColor: "#ea580c" },
-  charlie: { emoji: "\u2699\uFE0F", color: "#22c55e", skinColor: "#d4a574", hairColor: "#2d1b00", shirtColor: "#16a34a" },
-  ralph: { emoji: "\uD83D\uDD28", color: "#64748b", skinColor: "#f0c8a0", hairColor: "#5c4033", shirtColor: "#57534e" },
-  pixel: { emoji: "\uD83C\uDFA8", color: "#ec4899", skinColor: "#e8b88a", hairColor: "#ec4899", shirtColor: "#db2777" },
-};
-
-function getVisuals(name: string) {
-  return AGENT_VISUALS[name.toLowerCase()] ?? { emoji: "\uD83E\uDD16", color: "#6366f1", skinColor: "#f0c8a0", hairColor: "#1a1a2e", shirtColor: "#6366f1" };
-}
-
-function PixelAvatar({ name, size = 56 }: { name: string; size?: number }) {
-  const v = getVisuals(name);
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" style={{ imageRendering: "pixelated" }}>
-      <rect x="5" y="1" width="6" height="3" fill={v.hairColor} />
-      <rect x="4" y="2" width="1" height="2" fill={v.hairColor} />
-      <rect x="11" y="2" width="1" height="2" fill={v.hairColor} />
-      <rect x="5" y="3" width="6" height="4" fill={v.skinColor} />
-      <rect x="4" y="4" width="1" height="2" fill={v.skinColor} />
-      <rect x="11" y="4" width="1" height="2" fill={v.skinColor} />
-      <rect x="6" y="4" width="1" height="1" fill="#1a1a2e" />
-      <rect x="9" y="4" width="1" height="1" fill="#1a1a2e" />
-      <rect x="4" y="7" width="8" height="5" fill={v.shirtColor} rx="1" />
-      <rect x="3" y="7" width="2" height="4" fill={v.shirtColor} rx="0.5" />
-      <rect x="11" y="7" width="2" height="4" fill={v.shirtColor} rx="0.5" />
-      <rect x="3" y="10" width="2" height="1" fill={v.skinColor} rx="0.5" />
-      <rect x="11" y="10" width="2" height="1" fill={v.skinColor} rx="0.5" />
-      <rect x="5" y="12" width="2" height="3" fill="#374151" />
-      <rect x="9" y="12" width="2" height="3" fill="#374151" />
-      <rect x="4" y="14" width="3" height="1" fill="#1e293b" rx="0.5" />
-      <rect x="9" y="14" width="3" height="1" fill="#1e293b" rx="0.5" />
-    </svg>
-  );
-}
 
 // ─── Tabs ────────────────────────────────────────────────────────────────────
 
