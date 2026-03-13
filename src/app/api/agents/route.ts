@@ -10,20 +10,18 @@ import type { Agent, ApiResponse } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse<ApiResponse<Agent[]>>> {
   try {
-    // TODO: replace with real CLI call
-    // const raw = await exec("openclaw agents list --json");
-    // const data: Agent[] = JSON.parse(raw);
+    // TODO: wire to execFile("openclaw", ["agents", "list", "--json"])
     const data: Agent[] = mockAgents;
 
     return NextResponse.json({
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: [],
-        error: error instanceof Error ? error.message : "Failed to fetch agents",
+        error: "Failed to fetch agents",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: OverviewIcon },
   { href: "/tasks", label: "Tasks", icon: TasksIcon },
+  { href: "/calendar", label: "Calendar", icon: CalendarIcon },
   { href: "/office", label: "Office", icon: OfficeIcon },
+  { href: "/projects", label: "Projects", icon: ProjectsIcon },
   { href: "/agents", label: "Agents", icon: AgentsIcon },
   { href: "/team", label: "Team", icon: TeamIcon },
-  { href: "/projects", label: "Projects", icon: ProjectsIcon },
-  { href: "/calendar", label: "Calendar", icon: CalendarIcon },
   { href: "/memory", label: "Memory", icon: MemoryIcon },
   { href: "/docs", label: "Docs", icon: DocsIcon },
   { href: "/system", label: "System", icon: SystemIcon },

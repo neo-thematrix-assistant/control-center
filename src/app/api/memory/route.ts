@@ -5,31 +5,30 @@
 //   ?type=journal        — only journal entries
 //   ?type=long_term      — only long-term memory entries
 //   (omit for all entries)
-// Real CLI:
-//   openclaw memory list --json
-//   openclaw memory list --type=journal --json
-//   openclaw memory list --type=long_term --json
+// Real CLI (use execFile to prevent shell injection):
+//   execFile("openclaw", ["memory", "list", "--json"])
+//   execFile("openclaw", ["memory", "list", "--type=journal", "--json"])
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
 import { mockMemory } from "@/lib/mock-data";
 import type { MemoryEntry, ApiResponse } from "@/lib/types";
 
+const VALID_TYPES: MemoryEntry["type"][] = ["journal", "long_term"];
+
 export async function GET(
   request: NextRequest
 ): Promise<NextResponse<ApiResponse<MemoryEntry[]>>> {
   try {
     const { searchParams } = request.nextUrl;
-    const typeFilter = searchParams.get("type") as MemoryEntry["type"] | null;
+    const typeFilter = searchParams.get("type");
 
-    // TODO: replace with real CLI call
-    // const typeFlag = typeFilter ? `--type=${typeFilter}` : "";
-    // const raw = await exec(`openclaw memory list ${typeFlag} --json`.trim());
-    // let data: MemoryEntry[] = JSON.parse(raw);
+    // TODO: wire to execFile("openclaw", ["memory", "list", ...(typeFilter ? [`--type=${typeFilter}`] : []), "--json"])
 
     let data: MemoryEntry[] = mockMemory;
 
-    if (typeFilter === "journal" || typeFilter === "long_term") {
+    // Only filter if typeFilter is a known valid type
+    if (typeFilter && VALID_TYPES.includes(typeFilter as MemoryEntry["type"])) {
       data = data.filter((entry) => entry.type === typeFilter);
     }
 
@@ -37,11 +36,11 @@ export async function GET(
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: [],
-        error: error instanceof Error ? error.message : "Failed to fetch memory entries",
+        error: "Failed to fetch memory entries",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

@@ -5,14 +5,16 @@
 // Query params:
 //   ?id=d-001   — return single doc with full content
 //   (omit for all docs without content)
-// Real CLI:
-//   openclaw docs list --json
-//   openclaw docs read <id> --json
+// Real CLI (use execFile to prevent shell injection):
+//   execFile("openclaw", ["docs", "list", "--json"])
+//   execFile("openclaw", ["docs", "read", id, "--json"])
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
 import { mockDocs } from "@/lib/mock-data";
 import type { DocEntry, ApiResponse } from "@/lib/types";
+
+const ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 export async function GET(
   request: NextRequest
@@ -22,24 +24,32 @@ export async function GET(
     const id = searchParams.get("id");
 
     if (id) {
-      // TODO: replace with real CLI call
-      // const raw = await exec(`openclaw docs read ${id} --json`);
-      // const doc: DocEntry = JSON.parse(raw);
+      // Validate ID format to prevent injection when wired to real CLI
+      if (!ID_PATTERN.test(id) || id.length > 50) {
+        return NextResponse.json(
+          {
+            data: [] as DocEntry[],
+            error: "Invalid document ID format",
+            timestamp: new Date().toISOString(),
+          },
+          { status: 400 }
+        );
+      }
 
+      // TODO: wire to execFile("openclaw", ["docs", "read", id, "--json"])
       const doc = mockDocs.find((d) => d.id === id);
 
       if (!doc) {
         return NextResponse.json(
           {
             data: [] as DocEntry[],
-            error: `Doc with id "${id}" not found`,
+            error: "Document not found",
             timestamp: new Date().toISOString(),
           },
           { status: 404 }
         );
       }
 
-      // Return single doc with full content included
       const docWithContent: DocEntry = {
         ...doc,
         content: doc.content ?? `[Content for ${doc.name} — wire to real CLI to populate]`,
@@ -51,9 +61,7 @@ export async function GET(
       });
     }
 
-    // TODO: replace with real CLI call
-    // const raw = await exec("openclaw docs list --json");
-    // const docs: DocEntry[] = JSON.parse(raw);
+    // TODO: wire to execFile("openclaw", ["docs", "list", "--json"])
 
     // Strip content from list view to keep response lean
     const data: DocEntry[] = mockDocs.map(({ content: _content, ...rest }) => rest);
@@ -62,11 +70,11 @@ export async function GET(
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: [] as DocEntry[],
-        error: error instanceof Error ? error.message : "Failed to fetch docs",
+        error: "Failed to fetch docs",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

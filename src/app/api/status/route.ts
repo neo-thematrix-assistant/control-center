@@ -10,20 +10,18 @@ import type { GatewayStatus, ApiResponse } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse<ApiResponse<GatewayStatus>>> {
   try {
-    // TODO: replace with real CLI call
-    // const raw = await exec("openclaw status --json");
-    // const data: GatewayStatus = JSON.parse(raw);
+    // TODO: wire to execFile("openclaw", ["status", "--json"])
     const data: GatewayStatus = mockGateway;
 
     return NextResponse.json({
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: mockGateway,
-        error: error instanceof Error ? error.message : "Failed to fetch gateway status",
+        error: "Failed to fetch gateway status",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

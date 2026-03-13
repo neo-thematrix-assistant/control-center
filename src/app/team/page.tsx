@@ -157,6 +157,7 @@ function TeamCard({
   expanded,
   onToggle,
   onAvatarClick,
+  compact,
 }: {
   member: TeamMember;
   status?: string;
@@ -164,8 +165,107 @@ function TeamCard({
   expanded: boolean;
   onToggle: () => void;
   onAvatarClick: () => void;
+  compact?: boolean;
 }) {
   const v = getVisuals(member.name);
+
+  if (compact) {
+    return (
+      <div
+        className="rounded-xl p-4 transition-all cursor-pointer flex flex-col items-center text-center"
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: `1px solid ${v.color}15`,
+        }}
+        onClick={onToggle}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = `${v.color}30`;
+          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = `${v.color}15`;
+          e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+        }}
+      >
+        {/* Avatar */}
+        <div
+          className="rounded-lg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform mb-3"
+          style={{
+            width: 52,
+            height: 52,
+            background: `linear-gradient(135deg, ${v.color}15, ${v.color}08)`,
+            border: `1px solid ${v.color}20`,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAvatarClick();
+          }}
+        >
+          <PixelAvatar name={member.name} size={40} />
+        </div>
+
+        {/* Name + emoji */}
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span className="text-[14px] font-semibold text-[var(--text-primary)]">{member.name}</span>
+          <span style={{ fontSize: 14 }}>{v.emoji}</span>
+        </div>
+        <p className="text-[12px] text-[var(--text-muted)] mb-2">{member.role}</p>
+
+        {/* Status */}
+        {status && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <div
+              className="rounded-full"
+              style={{
+                width: 6,
+                height: 6,
+                background: status === "online" ? "#22c55e" : status === "busy" ? "#f59e0b" : status === "idle" ? "#3b82f6" : "#6b7280",
+                boxShadow: status === "online" ? "0 0 4px #22c55e" : status === "busy" ? "0 0 4px #f59e0b" : "none",
+              }}
+            />
+            <span className="text-[11px] capitalize text-[var(--text-secondary)]">{status}</span>
+            {currentTask && (
+              <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[120px]"> &mdash; {currentTask}</span>
+            )}
+          </div>
+        )}
+
+        {/* Tags */}
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {member.tags.map((tag) => (
+            <span
+              key={tag.label}
+              className="text-[10px] font-medium px-2 py-0.5 rounded-md"
+              style={{
+                background: `${tag.color}18`,
+                color: tag.color,
+                border: `1px solid ${tag.color}30`,
+              }}
+            >
+              {tag.label}
+            </span>
+          ))}
+        </div>
+
+        {/* Expanded role card */}
+        {expanded && (
+          <div
+            className="mt-3 pt-3 text-[12px] text-[var(--text-secondary)] leading-relaxed w-full text-left"
+            style={{ borderTop: `1px solid ${v.color}15` }}
+          >
+            <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-medium mb-2">
+              Role Details
+            </p>
+            <p>
+              {member.name} operates as the team&apos;s {member.role.toLowerCase()}, handling{" "}
+              {member.tags.map((t) => t.label.toLowerCase()).join(", ")}. Reports to the Chief of Staff
+              and works autonomously within their domain.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -338,7 +438,7 @@ export default function TeamPage() {
     return { status: agent?.status, currentTask: agent?.currentTask };
   };
 
-  const renderSection = (ids: string[]) =>
+  const renderSection = (ids: string[], compact?: boolean) =>
     ids.map((id) => {
       const member = TEAM[id];
       if (!member) return null;
@@ -352,6 +452,7 @@ export default function TeamPage() {
           expanded={expandedId === id}
           onToggle={() => toggle(id)}
           onAvatarClick={() => setPanelAgentId(id)}
+          compact={compact}
         />
       );
     });
@@ -396,7 +497,7 @@ export default function TeamPage() {
         <SectionDivider label="ENGINEERING & OPS" />
 
         <div className="grid grid-cols-3 gap-4 mt-4">
-          {renderSection(OPERATIONS)}
+          {renderSection(OPERATIONS, true)}
         </div>
 
         <VerticalConnector />

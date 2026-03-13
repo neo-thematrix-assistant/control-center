@@ -19,24 +19,36 @@ import type { Task, ApiResponse } from "@/lib/types";
 // TODO: remove once wired to real CLI / database
 const taskStore: Task[] = [...mockTasks];
 
-// ── GET ──────────────────────────────────────────────────────────
+// ── Validation helpers ───────────────────────────────────────
+
+const MAX_TITLE_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 2000;
+const VALID_STATUSES: Task["status"][] = ["backlog", "in_progress", "review", "done"];
+const VALID_PRIORITIES: Task["priority"][] = ["low", "medium", "high", "critical"];
+const ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+function sanitizeString(s: unknown, maxLen: number): string | undefined {
+  if (typeof s !== "string") return undefined;
+  return s.trim().slice(0, maxLen);
+}
+
+// ── GET ──────────────────────────────────────────────────────
 
 export async function GET(): Promise<NextResponse<ApiResponse<Task[]>>> {
   try {
-    // TODO: replace with real CLI call
-    // const raw = await exec("openclaw tasks list --json");
-    // const data: Task[] = JSON.parse(raw);
+    // TODO: wire to real CLI — use execFile("openclaw", ["tasks", "list", "--json"])
+    // execFile avoids shell interpretation, preventing command injection.
     const data: Task[] = taskStore;
 
     return NextResponse.json({
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: [],
-        error: error instanceof Error ? error.message : "Failed to fetch tasks",
+        error: "Failed to fetch tasks",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -44,7 +56,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<Task[]>>> {
   }
 }
 
-// ── POST ─────────────────────────────────────────────────────────
+// ── POST ─────────────────────────────────────────────────────
 
 type CreateTaskBody = Omit<Task, "id" | "createdAt" | "updatedAt"> & {
   id?: string;
@@ -73,39 +85,57 @@ export async function POST(
 
     const { id, ...fields } = body;
 
-    if (!fields.title || typeof fields.title !== "string") {
+    // Validate title
+    const title = sanitizeString(fields.title, MAX_TITLE_LENGTH);
+    if (!title) {
       return NextResponse.json(
         {
           data: {} as Task,
-          error: "Missing required field: title",
+          error: "Missing or invalid field: title (string, max 200 chars)",
           timestamp: new Date().toISOString(),
         },
         { status: 400 }
       );
     }
 
+    // Validate optional fields
+    const description = sanitizeString(fields.description, MAX_DESCRIPTION_LENGTH);
+    const status = VALID_STATUSES.includes(fields.status) ? fields.status : "backlog";
+    const priority = VALID_PRIORITIES.includes(fields.priority) ? fields.priority : "medium";
+    const assignee = sanitizeString(fields.assignee, 50);
+    const project = sanitizeString(fields.project, 100);
+
     const now = new Date().toISOString();
 
     if (id) {
       // ── Update existing task ────────────────────────────────
-      // TODO: const raw = await exec(`openclaw tasks update ${id} --json '${JSON.stringify(fields)}'`);
-      // const updated: Task = JSON.parse(raw);
+      // Validate ID format
+      if (typeof id !== "string" || !ID_PATTERN.test(id) || id.length > 50) {
+        return NextResponse.json(
+          { data: {} as Task, error: "Invalid task ID format", timestamp: now },
+          { status: 400 }
+        );
+      }
+
+      // TODO: wire to real CLI — use execFile("openclaw", ["tasks", "update", id, "--json", JSON.stringify(fields)])
+      // execFile passes args as array, preventing shell injection.
 
       const index = taskStore.findIndex((t) => t.id === id);
       if (index === -1) {
         return NextResponse.json(
-          {
-            data: {} as Task,
-            error: `Task with id "${id}" not found`,
-            timestamp: now,
-          },
+          { data: {} as Task, error: "Task not found", timestamp: now },
           { status: 404 }
         );
       }
 
       const updated: Task = {
         ...taskStore[index],
-        ...fields,
+        title,
+        description,
+        status,
+        priority,
+        assignee,
+        project,
         id,
         updatedAt: now,
       };
@@ -118,18 +148,17 @@ export async function POST(
       );
     } else {
       // ── Create new task ─────────────────────────────────────
-      // TODO: const raw = await exec(`openclaw tasks create --json '${JSON.stringify(fields)}'`);
-      // const created: Task = JSON.parse(raw);
+      // TODO: wire to real CLI — use execFile("openclaw", ["tasks", "create", "--json", JSON.stringify(fields)])
 
       const newTask: Task = {
         id: `t-${Date.now()}`,
-        title: fields.title,
-        description: fields.description,
-        status: fields.status ?? "backlog",
-        priority: fields.priority ?? "medium",
-        assignee: fields.assignee,
-        project: fields.project,
-        tags: fields.tags ?? [],
+        title,
+        description,
+        status,
+        priority,
+        assignee,
+        project,
+        tags: Array.isArray(fields.tags) ? fields.tags.filter((t): t is string => typeof t === "string").slice(0, 20) : [],
         createdAt: now,
         updatedAt: now,
       };
@@ -141,11 +170,11 @@ export async function POST(
         { status: 201 }
       );
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: {} as Task,
-        error: error instanceof Error ? error.message : "Failed to process task",
+        error: "Failed to process task",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

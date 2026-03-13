@@ -10,20 +10,18 @@ import type { Session, ApiResponse } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse<ApiResponse<Session[]>>> {
   try {
-    // TODO: replace with real CLI call
-    // const raw = await exec("openclaw sessions list --json");
-    // const data: Session[] = JSON.parse(raw);
+    // TODO: wire to execFile("openclaw", ["sessions", "list", "--json"])
     const data: Session[] = mockSessions;
 
     return NextResponse.json({
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         data: [],
-        error: error instanceof Error ? error.message : "Failed to fetch sessions",
+        error: "Failed to fetch sessions",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
