@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // Gateway — safe CLI execution wrapper for OpenClaw commands
 // Uses execFile (not exec) to prevent shell injection.
+// The CLI binary connects to the local gateway RPC automatically.
 // ═══════════════════════════════════════════════════════════════
 
 import { execFile as execFileCb } from "child_process";
@@ -10,11 +11,11 @@ import { getConfig } from "./config";
 const execFile = promisify(execFileCb);
 
 export async function openclawExec<T>(args: string[]): Promise<T> {
-  const { openclawBin, gatewayToken } = getConfig();
+  const { openclawBin, gatewayUrl } = getConfig();
 
   const env = { ...process.env };
-  if (gatewayToken) {
-    env.OPENCLAW_GATEWAY_TOKEN = gatewayToken;
+  if (gatewayUrl) {
+    env.OPENCLAW_GATEWAY_URL = gatewayUrl;
   }
 
   const { stdout } = await execFile(openclawBin, [...args, "--json"], {
@@ -27,11 +28,11 @@ export async function openclawExec<T>(args: string[]): Promise<T> {
 }
 
 export async function openclawExecRaw(args: string[]): Promise<string> {
-  const { openclawBin, gatewayToken } = getConfig();
+  const { openclawBin, gatewayUrl } = getConfig();
 
   const env = { ...process.env };
-  if (gatewayToken) {
-    env.OPENCLAW_GATEWAY_TOKEN = gatewayToken;
+  if (gatewayUrl) {
+    env.OPENCLAW_GATEWAY_URL = gatewayUrl;
   }
 
   const { stdout } = await execFile(openclawBin, args, {

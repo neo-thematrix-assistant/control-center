@@ -57,16 +57,19 @@ function detectWorkspace() {
   return null;
 }
 
-function detectGatewayToken(bin) {
+function detectGateway(bin) {
   try {
     const raw = execFileSync(bin, ["gateway", "status", "--json"], {
       encoding: "utf-8",
       timeout: 5000,
     });
     const data = JSON.parse(raw);
-    return data.token || data.gateway_token || null;
+    const isRunning = data.runtime?.status === "running" || data.runtime?.state === "active";
+    const rpcUrl = data.rpc?.url || data.gateway?.probeUrl || null;
+    const port = data.gateway?.port || null;
+    return { running: isRunning, rpcUrl, port, raw: data };
   } catch {
-    return null;
+    return { running: false, rpcUrl: null, port: null, raw: null };
   }
 }
 
@@ -97,7 +100,7 @@ function writeConfig(config) {
     `DASHBOARD_SECRET=${dashboardSecret}`,
     `OPENCLAW_BIN=${config.openclawBin || "openclaw"}`,
     `WORKSPACE_PATH=${config.workspacePath || ""}`,
-    `OPENCLAW_GATEWAY_TOKEN=${config.gatewayToken || ""}`,
+    `OPENCLAW_GATEWAY_URL=${config.gatewayUrl || ""}`,
     `PORT=${config.port || "3000"}`,
     "",
   ];
@@ -179,21 +182,18 @@ program
       initial: detectedWorkspace || path.join(os.homedir(), ".openclaw"),
     });
 
-    // 3. Gateway token
+    // 3. Detect gateway
     info("Checking gateway...");
-    const detectedToken = detectGatewayToken(openclawBin);
-    if (detectedToken) {
-      success("Gateway token detected automatically");
+    const gateway = detectGateway(openclawBin);
+    if (gateway.running && gateway.rpcUrl) {
+      success(`Gateway running at ${gateway.rpcUrl}`);
+    } else if (gateway.running) {
+      success("Gateway is running");
     } else {
-      warn("Could not auto-detect gateway token");
+      warn("Gateway not detected — dashboard will use demo data");
     }
 
-    const { gatewayToken } = await prompts({
-      type: "text",
-      name: "gatewayToken",
-      message: "Gateway token",
-      initial: detectedToken || "",
-    });
+    const gatewayUrl = gateway.rpcUrl || "";
 
     // 4. Organization name (white-label)
     console.log("");
@@ -213,7 +213,7 @@ program
     });
 
     // Write config
-    writeConfig({ openclawBin, workspacePath, gatewayToken, orgName, port });
+    writeConfig({ openclawBin, workspacePath, gatewayUrl, orgName, port });
 
     console.log("");
     success(`Configuration saved to ${ENV_FILE}`);

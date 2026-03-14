@@ -17,7 +17,7 @@ export function getConfig() {
     orgInitials: orgInitials || "MC",
     openclawBin: process.env.OPENCLAW_BIN || "openclaw",
     workspacePath: process.env.WORKSPACE_PATH || "",
-    gatewayToken: process.env.OPENCLAW_GATEWAY_TOKEN || "",
+    gatewayUrl: process.env.OPENCLAW_GATEWAY_URL || "",
     dashboardSecret: process.env.DASHBOARD_SECRET || "",
     isConfigured: !!(process.env.DASHBOARD_SECRET && process.env.ORG_NAME),
   };

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // API Route — GET /api/setup (detect gateway) | POST /api/setup (save config)
-// Auto-detects OpenClaw binary, workspace, and gateway token.
+// Auto-detects OpenClaw binary, workspace, and gateway RPC URL.
 // POST is only allowed when DASHBOARD_SECRET is not yet set
 // (i.e., first-time setup). After setup, this endpoint is locked.
 // ═══════════════════════════════════════════════════════════════
@@ -12,7 +12,6 @@ import { promisify } from "util";
 import { randomBytes } from "crypto";
 import { join } from "path";
 import { homedir } from "os";
-import { setSessionCookie } from "@/lib/auth";
 
 const execFile = promisify(execFileCb);
 
@@ -48,15 +47,24 @@ async function detectWorkspace(): Promise<string | null> {
   return null;
 }
 
-async function detectGatewayToken(bin: string): Promise<string | null> {
+interface GatewayDetection {
+  running: boolean;
+  rpcUrl: string | null;
+  port: number | null;
+}
+
+async function detectGateway(bin: string): Promise<GatewayDetection> {
   try {
     const { stdout } = await execFile(bin, ["gateway", "status", "--json"], {
       timeout: 5000,
     });
     const data = JSON.parse(stdout);
-    return data.token || data.gateway_token || null;
+    const isRunning = data.runtime?.status === "running" || data.runtime?.state === "active";
+    const rpcUrl = data.rpc?.url || data.gateway?.probeUrl || null;
+    const port = data.gateway?.port || null;
+    return { running: isRunning, rpcUrl, port };
   } catch {
-    return null;
+    return { running: false, rpcUrl: null, port: null };
   }
 }
 
@@ -65,13 +73,17 @@ async function detectGatewayToken(bin: string): Promise<string | null> {
 export async function GET(): Promise<NextResponse> {
   const binary = await detectBinary();
   const workspace = await detectWorkspace();
-  const token = binary ? await detectGatewayToken(binary) : null;
+  const gateway = binary ? await detectGateway(binary) : { running: false, rpcUrl: null, port: null };
 
   return NextResponse.json({
     binary,
     workspace,
-    token: token ? "detected" : null,
-    gatewayReachable: !!binary,
+    gateway: gateway.running ? {
+      running: true,
+      rpcUrl: gateway.rpcUrl,
+      port: gateway.port,
+    } : { running: false },
+    gatewayReachable: gateway.running,
   });
 }
 
@@ -124,7 +136,7 @@ export async function POST(
     // Auto-detect gateway configuration
     const binary = await detectBinary();
     const workspace = await detectWorkspace();
-    const token = binary ? await detectGatewayToken(binary) : null;
+    const gateway = binary ? await detectGateway(binary) : { running: false, rpcUrl: null, port: null };
 
     // Generate dashboard secret for auth
     const dashboardSecret = randomBytes(32).toString("hex");
@@ -138,7 +150,7 @@ export async function POST(
       `DASHBOARD_SECRET=${dashboardSecret}`,
       `OPENCLAW_BIN=${binary || "openclaw"}`,
       `WORKSPACE_PATH=${workspace || ""}`,
-      `OPENCLAW_GATEWAY_TOKEN=${token || ""}`,
+      `OPENCLAW_GATEWAY_URL=${gateway.rpcUrl || ""}`,
       `PORT=3000`,
       ``,
     ].join("\n");
@@ -157,7 +169,7 @@ export async function POST(
       detected: {
         binary: !!binary,
         workspace: !!workspace,
-        token: !!token,
+        gateway: gateway.running,
       },
     });
 

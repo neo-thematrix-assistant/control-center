@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 interface Detection {
   binary: string | null;
   workspace: string | null;
-  token: string | null;
+  gateway: { running: boolean; rpcUrl?: string; port?: number } | null;
   gatewayReachable: boolean;
 }
 
@@ -15,7 +15,7 @@ export default function SetupPage() {
   const [detecting, setDetecting] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [saveResult, setSaveResult] = useState<{ binary: boolean; workspace: boolean; token: boolean } | null>(null);
+  const [saveResult, setSaveResult] = useState<{ binary: boolean; workspace: boolean; gateway: boolean } | null>(null);
   const [error, setError] = useState("");
 
   // Auto-detect gateway on mount
@@ -27,7 +27,7 @@ export default function SetupPage() {
         setDetecting(false);
       })
       .catch(() => {
-        setDetection({ binary: null, workspace: null, token: null, gatewayReachable: false });
+        setDetection({ binary: null, workspace: null, gateway: null, gatewayReachable: false });
         setDetecting(false);
       });
   }, []);
@@ -109,10 +109,10 @@ export default function SetupPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${saveResult.token ? "bg-green-400" : "bg-amber-400"}`} />
-                <span className="text-[#94a3b8]">Gateway token</span>
-                <span className={`ml-auto ${saveResult.token ? "text-green-400" : "text-[#64748b]"}`}>
-                  {saveResult.token ? "Auto-configured" : "Set manually later"}
+                <div className={`w-2 h-2 rounded-full ${saveResult.gateway ? "bg-green-400" : "bg-amber-400"}`} />
+                <span className="text-[#94a3b8]">Gateway</span>
+                <span className={`ml-auto ${saveResult.gateway ? "text-green-400" : "text-[#64748b]"}`}>
+                  {saveResult.gateway ? "Connected" : "Using demo data"}
                 </span>
               </div>
             </div>
@@ -199,10 +199,10 @@ export default function SetupPage() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${detecting ? "bg-amber-400 animate-pulse" : detection?.token ? "bg-green-400" : "bg-amber-400"}`} />
-              <span className="text-xs font-medium text-[#94a3b8]">Gateway Token</span>
-              <span className={`ml-auto text-xs ${detecting ? "text-amber-400" : detection?.token ? "text-green-400" : "text-[#64748b]"}`}>
-                {detecting ? "Scanning..." : detection?.token ? "Auto-detected" : "Not detected"}
+              <div className={`w-2 h-2 rounded-full ${detecting ? "bg-amber-400 animate-pulse" : detection?.gateway?.running ? "bg-green-400" : "bg-amber-400"}`} />
+              <span className="text-xs font-medium text-[#94a3b8]">Gateway</span>
+              <span className={`ml-auto text-xs ${detecting ? "text-amber-400" : detection?.gateway?.running ? "text-green-400" : "text-[#64748b]"}`}>
+                {detecting ? "Scanning..." : detection?.gateway?.running ? `Running${detection.gateway.rpcUrl ? ` at ${detection.gateway.rpcUrl}` : ""}` : "Not running"}
               </span>
             </div>
 
