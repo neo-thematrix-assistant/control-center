@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // API Route — GET /api/sessions
-// CLI: openclaw sessions list --json
+// CLI: openclaw sessions --json
 // ═══════════════════════════════════════════════════════════════
 
 import { NextResponse } from "next/server";
@@ -10,7 +10,7 @@ import type { Session, ApiResponse } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse<ApiResponse<Session[]>>> {
   try {
-    const data = await openclawExec<Session[]>(["sessions", "list"]);
+    const data = await openclawExec<Session[]>(["sessions"]);
     return NextResponse.json({ data, timestamp: new Date().toISOString() });
   } catch {
     return NextResponse.json({
