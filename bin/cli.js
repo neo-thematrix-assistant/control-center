@@ -124,8 +124,10 @@ function spawnNext(command, extraArgs = []) {
     cwd: PACKAGE_ROOT,
     stdio: "inherit",
     env: {
+      ...Object.fromEntries(
+        Object.entries(config).map(([k, v]) => [k, String(v).replace(/^["']|["']$/g, "")])
+      ),
       ...process.env,
-      ...config,
     },
   });
 
