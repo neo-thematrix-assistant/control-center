@@ -142,6 +142,10 @@ export async function POST(
     // Generate dashboard secret for auth
     const dashboardSecret = randomBytes(32).toString("hex");
 
+    // Preserve already-exported gateway auth env (if present)
+    const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN || "";
+    const gatewayPassword = process.env.OPENCLAW_GATEWAY_PASSWORD || "";
+
     // Build .env.local content with detected values
     const envContent = [
       `# OpenClaw Mission Control Configuration`,
@@ -152,6 +156,8 @@ export async function POST(
       `OPENCLAW_BIN=${binary || "openclaw"}`,
       `WORKSPACE_PATH=${workspace || ""}`,
       `OPENCLAW_GATEWAY_URL=${gateway.rpcUrl || ""}`,
+      `OPENCLAW_GATEWAY_TOKEN=${gatewayToken}`,
+      `OPENCLAW_GATEWAY_PASSWORD=${gatewayPassword}`,
       `PORT=3000`,
       ``,
     ].join("\n");

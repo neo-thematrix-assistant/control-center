@@ -102,6 +102,8 @@ function writeConfig(config) {
     `OPENCLAW_BIN=${config.openclawBin || "openclaw"}`,
     `WORKSPACE_PATH=${config.workspacePath || ""}`,
     `OPENCLAW_GATEWAY_URL=${config.gatewayUrl || ""}`,
+    `OPENCLAW_GATEWAY_TOKEN=${config.gatewayToken || ""}`,
+    `OPENCLAW_GATEWAY_PASSWORD=${config.gatewayPassword || ""}`,
     `PORT=${config.port || "3000"}`,
     "",
   ];
@@ -216,7 +218,15 @@ program
     });
 
     // Write config
-    writeConfig({ openclawBin, workspacePath, gatewayUrl, orgName, port });
+    writeConfig({
+      openclawBin,
+      workspacePath,
+      gatewayUrl,
+      gatewayToken: process.env.OPENCLAW_GATEWAY_TOKEN || "",
+      gatewayPassword: process.env.OPENCLAW_GATEWAY_PASSWORD || "",
+      orgName,
+      port,
+    });
 
     console.log("");
     success(`Configuration saved to ${ENV_FILE}`);

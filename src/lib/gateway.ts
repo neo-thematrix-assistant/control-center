@@ -11,11 +11,17 @@ import { getConfig } from "./config";
 const execFile = promisify(execFileCb);
 
 export async function openclawExec<T>(args: string[]): Promise<T> {
-  const { openclawBin, gatewayUrl } = getConfig();
+  const { openclawBin, gatewayUrl, gatewayToken, gatewayPassword } = getConfig();
 
   const env = { ...process.env };
   if (gatewayUrl) {
     env.OPENCLAW_GATEWAY_URL = gatewayUrl;
+  }
+  if (gatewayToken) {
+    env.OPENCLAW_GATEWAY_TOKEN = gatewayToken;
+  }
+  if (gatewayPassword) {
+    env.OPENCLAW_GATEWAY_PASSWORD = gatewayPassword;
   }
 
   const { stdout } = await execFile(openclawBin, [...args, "--json"], {
@@ -28,11 +34,17 @@ export async function openclawExec<T>(args: string[]): Promise<T> {
 }
 
 export async function openclawExecRaw(args: string[]): Promise<string> {
-  const { openclawBin, gatewayUrl } = getConfig();
+  const { openclawBin, gatewayUrl, gatewayToken, gatewayPassword } = getConfig();
 
   const env = { ...process.env };
   if (gatewayUrl) {
     env.OPENCLAW_GATEWAY_URL = gatewayUrl;
+  }
+  if (gatewayToken) {
+    env.OPENCLAW_GATEWAY_TOKEN = gatewayToken;
+  }
+  if (gatewayPassword) {
+    env.OPENCLAW_GATEWAY_PASSWORD = gatewayPassword;
   }
 
   const { stdout } = await execFile(openclawBin, args, {

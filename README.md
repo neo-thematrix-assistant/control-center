@@ -27,7 +27,7 @@ That's it. Open [http://localhost:3000](http://localhost:3000).
 
 ## How It Works
 
-Mission Control connects to your local OpenClaw installation via CLI. All API routes call `openclaw <command> --json` under the hood. If the gateway is unreachable, the dashboard gracefully falls back to demo data so you can explore the UI immediately.
+Mission Control connects to your local/remote OpenClaw gateway through the OpenClaw CLI. All API routes call `openclaw <command> --json` under the hood, and the server forwards `OPENCLAW_GATEWAY_URL` plus gateway auth (`OPENCLAW_GATEWAY_TOKEN` / `OPENCLAW_GATEWAY_PASSWORD`) when set. If the gateway is unreachable, the dashboard gracefully falls back to demo data so you can explore the UI immediately.
 
 ### Setup Options
 
@@ -44,9 +44,12 @@ Just run `mission-control dev` without setup — you'll be redirected to a setup
 Create `~/.config/openclaw-mission-control/.env.local`:
 ```env
 ORG_NAME="Your Org Name"
+DASHBOARD_SECRET=your-dashboard-secret
 OPENCLAW_BIN=openclaw
-WORKSPACE_PATH=~/.openclaw/agents/main/workspace
+WORKSPACE_PATH=~/.openclaw/workspace
+OPENCLAW_GATEWAY_URL=
 OPENCLAW_GATEWAY_TOKEN=your-token-here
+# OPENCLAW_GATEWAY_PASSWORD=your-password-here
 PORT=3000
 ```
 

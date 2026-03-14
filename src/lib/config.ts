@@ -18,6 +18,8 @@ export function getConfig() {
     openclawBin: process.env.OPENCLAW_BIN || "openclaw",
     workspacePath: process.env.WORKSPACE_PATH || "",
     gatewayUrl: process.env.OPENCLAW_GATEWAY_URL || "",
+    gatewayToken: process.env.OPENCLAW_GATEWAY_TOKEN || "",
+    gatewayPassword: process.env.OPENCLAW_GATEWAY_PASSWORD || "",
     dashboardSecret: process.env.DASHBOARD_SECRET || "",
     isConfigured: !!(process.env.DASHBOARD_SECRET && process.env.ORG_NAME),
   };
