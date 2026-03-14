@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 // API Route — GET /api/tasks | POST /api/tasks
-// CLI: openclaw tasks list|create|update --json
+// GET maps cron jobs into task-like cards; POST uses local in-memory store
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,8 +28,24 @@ function sanitizeString(s: unknown, maxLen: number): string | undefined {
 
 export async function GET(): Promise<NextResponse<ApiResponse<Task[]>>> {
   try {
-    const data = await openclawExec<Task[]>(["tasks", "list"]);
-    return NextResponse.json({ data, timestamp: new Date().toISOString() });
+    const now = new Date().toISOString();
+    const cron = await openclawExec<{ jobs?: Array<{ id?: string; name?: string; enabled?: boolean; updatedAtMs?: number; schedule?: { kind?: string; expr?: string } }> }>(["cron", "list"]);
+    const jobs = Array.isArray(cron) ? cron : (cron.jobs || []);
+
+    const data: Task[] = jobs.map((job, idx) => ({
+      id: job.id || `cron-${idx}`,
+      title: job.name || `Cron job ${idx + 1}`,
+      description: job.schedule?.expr ? `Cron: ${job.schedule.expr}` : "OpenClaw cron job",
+      status: job.enabled ? "in_progress" : "backlog",
+      priority: "medium",
+      assignee: "System",
+      project: "Automation",
+      tags: ["cron", job.schedule?.kind || "schedule"],
+      createdAt: job.updatedAtMs ? new Date(job.updatedAtMs).toISOString() : now,
+      updatedAt: job.updatedAtMs ? new Date(job.updatedAtMs).toISOString() : now,
+    }));
+
+    return NextResponse.json({ data, timestamp: now });
   } catch {
     return NextResponse.json({
       data: taskStore,
