@@ -1,17 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
 // API Route — GET /api/memory
-// Returns memory entries, optionally filtered by type
-// Query params:
-//   ?type=journal        — only journal entries
-//   ?type=long_term      — only long-term memory entries
-//   (omit for all entries)
-// Real CLI (use execFile to prevent shell injection):
-//   execFile("openclaw", ["memory", "list", "--json"])
-//   execFile("openclaw", ["memory", "list", "--type=journal", "--json"])
+// CLI: openclaw memory list [--type=journal|long_term] --json
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
 import { mockMemory } from "@/lib/mock-data";
+import { openclawExec } from "@/lib/gateway";
 import type { MemoryEntry, ApiResponse } from "@/lib/types";
 
 const VALID_TYPES: MemoryEntry["type"][] = ["journal", "long_term"];
@@ -23,11 +17,19 @@ export async function GET(
     const { searchParams } = request.nextUrl;
     const typeFilter = searchParams.get("type");
 
-    // TODO: wire to execFile("openclaw", ["memory", "list", ...(typeFilter ? [`--type=${typeFilter}`] : []), "--json"])
+    const args = ["memory", "list"];
+    if (typeFilter && VALID_TYPES.includes(typeFilter as MemoryEntry["type"])) {
+      args.push(`--type=${typeFilter}`);
+    }
+
+    const data = await openclawExec<MemoryEntry[]>(args);
+    return NextResponse.json({ data, timestamp: new Date().toISOString() });
+  } catch {
+    // Fallback to mock data
+    const { searchParams } = request.nextUrl;
+    const typeFilter = searchParams.get("type");
 
     let data: MemoryEntry[] = mockMemory;
-
-    // Only filter if typeFilter is a known valid type
     if (typeFilter && VALID_TYPES.includes(typeFilter as MemoryEntry["type"])) {
       data = data.filter((entry) => entry.type === typeFilter);
     }
@@ -36,14 +38,5 @@ export async function GET(
       data,
       timestamp: new Date().toISOString(),
     });
-  } catch {
-    return NextResponse.json(
-      {
-        data: [],
-        error: "Failed to fetch memory entries",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
   }
 }

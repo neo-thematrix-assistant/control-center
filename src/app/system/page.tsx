@@ -73,7 +73,7 @@ function GatewayCard({ gateway }: GatewayCardProps) {
           </div>
           <div>
             <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">
-              OpenClaw Gateway
+              Gateway
             </h2>
             <span className={`text-[12px] font-semibold ${sc.text}`}>
               {sc.label}
@@ -484,7 +484,7 @@ const ACTIONS: ActionDef[] = [
     id: "gateway_restart",
     title: "Gateway Restart",
     description:
-      "Restart the OpenClaw gateway -- terminates all active sessions",
+      "Restart the gateway -- terminates all active sessions",
     actionName: "gateway_restart",
     dangerous: true,
     icon: ACTION_ICON_RESTART,

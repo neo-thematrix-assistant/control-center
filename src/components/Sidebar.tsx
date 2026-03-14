@@ -16,7 +16,13 @@ const NAV_ITEMS = [
   { href: "/system", label: "System", icon: SystemIcon },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  orgName = "Mission Control",
+  orgInitials = "MC",
+}: {
+  orgName?: string;
+  orgInitials?: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -24,11 +30,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-[var(--border-color)]">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-          OC
+          {orgInitials}
         </div>
         <div>
-          <div className="text-sm font-semibold text-[var(--text-primary)] leading-tight">OpenClaw</div>
-          <div className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase">Mission Control</div>
+          <div className="text-sm font-semibold text-[var(--text-primary)] leading-tight">{orgName}</div>
+          <div className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase">Command Center</div>
         </div>
       </div>
 

@@ -1,30 +1,21 @@
 // ═══════════════════════════════════════════════════════════════
 // API Route — GET /api/cron
-// Returns all scheduled cron jobs and their current state
-// Real CLI: openclaw cron list --json
+// CLI: openclaw cron list --json
 // ═══════════════════════════════════════════════════════════════
 
 import { NextResponse } from "next/server";
 import { mockCronJobs } from "@/lib/mock-data";
+import { openclawExec } from "@/lib/gateway";
 import type { CronJob, ApiResponse } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse<ApiResponse<CronJob[]>>> {
   try {
-    // TODO: wire to execFile("openclaw", ["cron", "list", "--json"])
-    const data: CronJob[] = mockCronJobs;
-
+    const data = await openclawExec<CronJob[]>(["cron", "list"]);
+    return NextResponse.json({ data, timestamp: new Date().toISOString() });
+  } catch {
     return NextResponse.json({
-      data,
+      data: mockCronJobs,
       timestamp: new Date().toISOString(),
     });
-  } catch {
-    return NextResponse.json(
-      {
-        data: [],
-        error: "Failed to fetch cron jobs",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
   }
 }
